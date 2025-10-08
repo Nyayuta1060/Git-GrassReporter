@@ -2,20 +2,20 @@
 
 毎日21時(JST)にGitHubの草(contributions)をチェックし、その日に草が生えていなければDiscordに通知を送るツール
 
-**GitHub Actionsで自動実行 - PCが起動していなくても動作します！**
+**GitHub Actionsで自動実行 - PCが起動していなくても動作**
 
-## 🌟 特徴
+## 特徴
 
 - GitHub Actionsで完全自動実行（無料）
 - サーバー不要、PCを起動する必要なし
 - GitHub APIで正確なコントリビューション取得
 - Discordにメンション付きで通知
 
-## 🚀 セットアップ手順
+## セットアップ手順
 
 ### 1. GitHubリポジトリの作成
 
-このプロジェクトをGitHubにプッシュします：
+このプロジェクトをGitHubにpush(Forkでも使用可能)：
 
 ```bash
 cd /home/nyayuta/workspace/etc/Git-GrassReporter
@@ -40,7 +40,7 @@ git push -u origin main
 3. 設定:
    - **Note**: `Git-GrassReporter`
    - **Expiration**: `No expiration` または長めに設定
-   - **Scopes**: `read:user` にチェック ✅
+   - **Scopes**: `read:user` にチェックを入れる
 4. **Generate token** をクリックしてトークンをコピー（後で使うので保存しておく）
 
 #### Discord Webhook URL
@@ -57,7 +57,7 @@ git push -u origin main
 
 ### 3. GitHub Secretsの設定
 
-リポジトリで機密情報を安全に管理します：
+リポジトリで機密情報を安全に管理：
 
 1. GitHubリポジトリのページで **Settings** タブを開く
 2. 左サイドバーで **Secrets and variables** → **Actions** を選択
@@ -90,7 +90,7 @@ git push -u origin main
 - 毎日12:00 UTC（= 21:00 JST）に自動実行されます
 - GitHub Actionsのスケジュールは最大15分程度の遅延が発生する場合があります
 
-## 📋 ファイル構成
+## ファイル構成
 
 ```
 Git-GrassReporter/
@@ -105,7 +105,7 @@ Git-GrassReporter/
 └── readme.md                   # このファイル
 ```
 
-## 🔧 トラブルシューティング
+## トラブルシューティング
 
 ### GitHub Actionsが実行されない
 
@@ -136,7 +136,7 @@ Git-GrassReporter/
 3. **check-grass**ジョブをクリック
 4. 各ステップのログを確認
 
-## 🖥️ ローカルでの実行（オプション）
+## ローカルでの実行（オプション）
 
 GitHub Actionsとは別に、ローカルでもテスト実行できます：
 
@@ -153,7 +153,7 @@ export GITHUB_USERNAME GITHUB_TOKEN DISCORD_WEBHOOK_URL DISCORD_USER_ID
 ./venv/bin/python grass_checker.py
 ```
 
-## 📝 仕組み
+## 仕組み
 
 1. **GitHub Actions**が毎日21時(JST)に起動
 2. **GitHub GraphQL API**で今日のコントリビューションを取得
@@ -162,7 +162,7 @@ export GITHUB_USERNAME GITHUB_TOKEN DISCORD_WEBHOOK_URL DISCORD_USER_ID
    - 指定されたユーザーにメンション
 4. **1件以上**の場合: 何もしない
 
-## 🎯 カスタマイズ
+## カスタマイズ
 
 ### 実行時刻の変更
 
@@ -184,23 +184,23 @@ schedule:
 message = f"🌱 {today}の草が生えていません！今日もコミットしましょう！"
 ```
 
-## 💰 コスト
+## コスト
 
-**完全無料！**
+**完全無料**
 
 - GitHub Actions: 月2,000分まで無料（このツールは月30分程度）
 - Private repositoryでも無料枠内で動作
 
-## 📄 ライセンス
+## ライセンス
 
 MIT License
 
-## 👤 作者
+## 作者
 
 Nyayuta1060
 
 ---
 
-## 🆘 サポート
+## サポート
 
 問題が発生した場合は、リポジトリの**Issues**で報告してください。

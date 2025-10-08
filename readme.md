@@ -17,19 +17,6 @@
 
 このプロジェクトをGitHubにpush(Forkでも使用可能)：
 
-```bash
-cd /home/nyayuta/workspace/etc/Git-GrassReporter
-
-# Gitリポジトリの初期化（まだの場合）
-git init
-git add .
-git commit -m "Initial commit: GitHub Grass Reporter"
-
-# GitHubでリポジトリを作成後、リモートを追加
-git remote add origin https://github.com/Nyayuta1060/Git-GrassReporter.git
-git branch -M main
-git push -u origin main
-```
 
 ### 2. 必要な情報の取得
 

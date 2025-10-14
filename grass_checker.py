@@ -3,6 +3,7 @@
 GitHub Grass Reporter
 毎日21時にGitHubの草(contributions)をチェックし、
 その日に草が生えていなければDiscordに通知を送る
+毎日0時に連続コントリビュート日数を投稿
 """
 
 import os
@@ -14,19 +15,103 @@ from typing import Optional
 
 class GrassChecker:
     def __init__(self, github_username: str, github_token: str, 
-                 discord_webhook_url: str, discord_user_id: str):
+                 discord_webhook_url: str, discord_user_id: str,
+                 enable_grass_check: bool = True,
+                 enable_daily_streak: bool = True):
         """
         Args:
             github_username: GitHubユーザー名
             github_token: GitHub Personal Access Token
             discord_webhook_url: Discord Webhook URL
             discord_user_id: メンション対象のDiscord User ID
+            enable_grass_check: 草チェック機能の有効/無効(デフォルト: True)
+            enable_daily_streak: 連続日数投稿機能の有効/無効(デフォルト: True)
         """
         self.github_username = github_username
         self.github_token = github_token
         self.discord_webhook_url = discord_webhook_url
         self.discord_user_id = discord_user_id
+        self.enable_grass_check = enable_grass_check
+        self.enable_daily_streak = enable_daily_streak
         
+    def get_contribution_streak(self) -> Optional[int]:
+        """
+        連続コントリビュート日数を取得
+        
+        Returns:
+            連続日数、取得失敗時はNone
+        """
+        # GitHub GraphQL APIを使用
+        query = """
+        query($userName:String!) {
+          user(login: $userName) {
+            contributionsCollection {
+              contributionCalendar {
+                weeks {
+                  contributionDays {
+                    contributionCount
+                    date
+                  }
+                }
+              }
+            }
+          }
+        }
+        """
+        
+        headers = {
+            "Authorization": f"Bearer {self.github_token}",
+            "Content-Type": "application/json",
+        }
+        
+        variables = {"userName": self.github_username}
+        
+        try:
+            response = requests.post(
+                "https://api.github.com/graphql",
+                json={"query": query, "variables": variables},
+                headers=headers,
+                timeout=10
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            # 全てのコントリビューションデータを日付順に取得
+            weeks = data.get("data", {}).get("user", {}).get(
+                "contributionsCollection", {}
+            ).get("contributionCalendar", {}).get("weeks", [])
+            
+            all_days = []
+            for week in weeks:
+                all_days.extend(week.get("contributionDays", []))
+            
+            # 日付の新しい順にソート
+            all_days.sort(key=lambda x: x.get("date", ""), reverse=True)
+            
+            # 連続日数をカウント
+            streak = 0
+            jst = timezone(timedelta(hours=9))
+            today = datetime.now(jst).date()
+            
+            for i, day in enumerate(all_days):
+                day_date = datetime.fromisoformat(day.get("date")).date()
+                expected_date = today - timedelta(days=i)
+                
+                # 日付が期待通りで、コントリビューションがある場合
+                if day_date == expected_date and day.get("contributionCount", 0) > 0:
+                    streak += 1
+                else:
+                    break
+            
+            return streak
+            
+        except requests.exceptions.RequestException as e:
+            print(f"GitHub API エラー: {e}", file=sys.stderr)
+            return None
+        except (KeyError, TypeError) as e:
+            print(f"レスポンス解析エラー: {e}", file=sys.stderr)
+            return None
+    
     def get_today_contributions(self) -> Optional[int]:
         """
         今日のGitHub Contributionsを取得
@@ -92,19 +177,23 @@ class GrassChecker:
             print(f"レスポンス解析エラー: {e}", file=sys.stderr)
             return None
     
-    def send_discord_notification(self, message: str) -> bool:
+    def send_discord_notification(self, message: str, mention: bool = True) -> bool:
         """
         Discordに通知を送信
         
         Args:
             message: 送信するメッセージ
+            mention: メンションを含めるかどうか(デフォルト: True)
             
         Returns:
             送信成功時True、失敗時False
         """
-        payload = {
-            "content": f"<@{self.discord_user_id}> {message}"
-        }
+        if mention:
+            content = f"<@{self.discord_user_id}> {message}"
+        else:
+            content = message
+            
+        payload = {"content": content}
         
         try:
             response = requests.post(
@@ -118,6 +207,40 @@ class GrassChecker:
             print(f"Discord通知エラー: {e}", file=sys.stderr)
             return False
     
+    def post_daily_streak(self) -> bool:
+        """
+        連続コントリビュート日数を投稿(メンション無し)
+        
+        Returns:
+            処理成功時True、失敗時False
+        """
+        if not self.enable_daily_streak:
+            print("連続日数投稿機能は無効になっています")
+            return True
+        
+        print(f"[{datetime.now()}] 連続日数投稿開始...")
+        
+        streak = self.get_contribution_streak()
+        
+        if streak is None:
+            print("連続日数の取得に失敗しました", file=sys.stderr)
+            return False
+        
+        print(f"現在の連続コントリビュート日数: {streak}日")
+        
+        jst = timezone(timedelta(hours=9))
+        today = datetime.now(jst).strftime("%Y年%m月%d日")
+
+
+        message = f"📊 {today}\n現在の連続コントリビュート: **{streak}** 日"
+
+        if self.send_discord_notification(message, mention=False):
+            print("連続日数をDiscordに投稿しました")
+            return True
+        else:
+            print("Discord投稿に失敗しました", file=sys.stderr)
+            return False
+    
     def check_and_notify(self) -> bool:
         """
         草をチェックして、必要なら通知を送信
@@ -125,6 +248,10 @@ class GrassChecker:
         Returns:
             処理成功時True、失敗時False
         """
+        if not self.enable_grass_check:
+            print("草チェック機能は無効になっています")
+            return True
+        
         print(f"[{datetime.now()}] 草チェック開始...")
         
         contributions = self.get_today_contributions()
@@ -159,6 +286,10 @@ def main():
     discord_webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
     discord_user_id = os.getenv("DISCORD_USER_ID")
     
+    # 機能のオンオフ設定(デフォルトは両方有効)
+    enable_grass_check = os.getenv("ENABLE_GRASS_CHECK", "true").lower() in ("true", "1", "yes")
+    enable_daily_streak = os.getenv("ENABLE_DAILY_STREAK", "true").lower() in ("true", "1", "yes")
+    
     # 必須パラメータのチェック
     if not all([github_username, github_token, discord_webhook_url, discord_user_id]):
         print("エラー: 必要な環境変数が設定されていません", file=sys.stderr)
@@ -167,16 +298,30 @@ def main():
         print("  - GITHUB_TOKEN", file=sys.stderr)
         print("  - DISCORD_WEBHOOK_URL", file=sys.stderr)
         print("  - DISCORD_USER_ID", file=sys.stderr)
+        print("\nオプション環境変数:", file=sys.stderr)
+        print("  - ENABLE_GRASS_CHECK (デフォルト: true)", file=sys.stderr)
+        print("  - ENABLE_DAILY_STREAK (デフォルト: true)", file=sys.stderr)
         sys.exit(1)
     
     checker = GrassChecker(
         github_username=github_username,
         github_token=github_token,
         discord_webhook_url=discord_webhook_url,
-        discord_user_id=discord_user_id
+        discord_user_id=discord_user_id,
+        enable_grass_check=enable_grass_check,
+        enable_daily_streak=enable_daily_streak
     )
     
-    success = checker.check_and_notify()
+    # コマンドライン引数でモードを判定
+    mode = sys.argv[1] if len(sys.argv) > 1 else "check"
+    
+    if mode == "daily-streak":
+        # 連続日数を投稿(毎日0時用)
+        success = checker.post_daily_streak()
+    else:
+        # 通常のチェックモード(毎日21時用)
+        success = checker.check_and_notify()
+    
     sys.exit(0 if success else 1)
 
 

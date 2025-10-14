@@ -1,13 +1,13 @@
-name: Check GitHub Grass
+name: Post Daily Streak
 
 on:
   schedule:
-    # 毎日12:00 UTC = 21:00 JST に実行
-    - cron: "0 12 * * *"
+    # 毎日15:00 UTC = 00:00 JST (深夜0時)に実行
+    - cron: "0 15 * * *"
   workflow_dispatch: # 手動実行も可能
 
 jobs:
-  check-grass:
+  post-streak:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,12 +25,12 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Check grass and notify
+      - name: Post daily streak
         env:
           GITHUB_USERNAME: ${{ secrets.GH_USERNAME }}
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           DISCORD_USER_ID: ${{ secrets.DISCORD_USER_ID }}
-          ENABLE_GRASS_CHECK: ${{ vars.ENABLE_GRASS_CHECK || 'true' }}
+          ENABLE_DAILY_STREAK: ${{ vars.ENABLE_DAILY_STREAK || 'true' }}
         run: |
-          python grass_checker.py
+          python grass_checker.py daily-streak

@@ -243,9 +243,9 @@ class GrassChecker:
         print(f"前日までの連続コントリビュート日数: {streak}日")
         
         jst = timezone(timedelta(hours=9))
-        today = datetime.now(jst).strftime("%Y年%m月%d日")
+        yesterday = (datetime.now(jst) - timedelta(days=1)).strftime("%Y年%m月%d日")
 
-        message = f"📊 {today}\n現在の連続コントリビュート: **{streak}** 日"
+        message = f"📊 {yesterday}までの連続コントリビュート: **{streak}** 日"
 
         if self.send_discord_notification(message, mention=False):
             print("連続日数をDiscordに投稿しました")

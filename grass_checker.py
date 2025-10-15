@@ -36,7 +36,8 @@ class GrassChecker:
         
     def get_contribution_streak(self) -> Optional[int]:
         """
-        連続コントリビュート日数を取得
+        前日までの連続コントリビュート日数を取得
+        (当日を含まない - 0時時点では当日のコントリビューションはまだないため)
         
         Returns:
             連続日数、取得失敗時はNone
@@ -88,14 +89,14 @@ class GrassChecker:
             # 日付の新しい順にソート
             all_days.sort(key=lambda x: x.get("date", ""), reverse=True)
             
-            # 連続日数をカウント
+            # 連続日数をカウント（前日から遡る）
             streak = 0
             jst = timezone(timedelta(hours=9))
-            today = datetime.now(jst).date()
+            yesterday = datetime.now(jst).date() - timedelta(days=1)
             
             for i, day in enumerate(all_days):
                 day_date = datetime.fromisoformat(day.get("date")).date()
-                expected_date = today - timedelta(days=i)
+                expected_date = yesterday - timedelta(days=i)
                 
                 # 日付が期待通りで、コントリビューションがある場合
                 if day_date == expected_date and day.get("contributionCount", 0) > 0:
@@ -226,11 +227,10 @@ class GrassChecker:
             print("連続日数の取得に失敗しました", file=sys.stderr)
             return False
         
-        print(f"現在の連続コントリビュート日数: {streak}日")
+        print(f"前日までの連続コントリビュート日数: {streak}日")
         
         jst = timezone(timedelta(hours=9))
         today = datetime.now(jst).strftime("%Y年%m月%d日")
-
 
         message = f"📊 {today}\n現在の連続コントリビュート: **{streak}** 日"
 

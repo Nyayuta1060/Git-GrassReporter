@@ -175,7 +175,6 @@ export GITHUB_USERNAME GITHUB_TOKEN DISCORD_WEBHOOK_URL DISCORD_USER_ID
 1. **GitHub Actions**が毎日 0 時(JST)に起動
 2. **GitHub GraphQL API**で前日までの連続コントリビュート日数を計算
 3. **メンション無し**で前日までの連続日数を Discord に投稿
-4. 連続日数に応じて異なる絵文字とメッセージを表示
 
 **注意**: 当日のコントリビューションは含まれません（0 時時点ではまだ当日の活動がないため）
 

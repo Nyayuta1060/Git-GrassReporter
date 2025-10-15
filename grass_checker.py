@@ -82,28 +82,41 @@ class GrassChecker:
                 "contributionsCollection", {}
             ).get("contributionCalendar", {}).get("weeks", [])
             
-            all_days = []
+            # 日付をキーとした辞書に変換
+            contributions_dict = {}
             for week in weeks:
-                all_days.extend(week.get("contributionDays", []))
-            
-            # 日付の新しい順にソート
-            all_days.sort(key=lambda x: x.get("date", ""), reverse=True)
+                for day in week.get("contributionDays", []):
+                    date_str = day.get("date")
+                    if date_str:
+                        contributions_dict[date_str] = day.get("contributionCount", 0)
             
             # 連続日数をカウント（前日から遡る）
             streak = 0
             jst = timezone(timedelta(hours=9))
             yesterday = datetime.now(jst).date() - timedelta(days=1)
             
-            for i, day in enumerate(all_days):
-                day_date = datetime.fromisoformat(day.get("date")).date()
-                expected_date = yesterday - timedelta(days=i)
+            # デバッグ: 昨日の日付を出力
+            print(f"[DEBUG] 昨日の日付 (計算開始点): {yesterday}")
+            
+            # 昨日から遡って連続日数をカウント
+            current_date = yesterday
+            while True:
+                date_str = current_date.isoformat()
+                contribution_count = contributions_dict.get(date_str, 0)
                 
-                # 日付が期待通りで、コントリビューションがある場合
-                if day_date == expected_date and day.get("contributionCount", 0) > 0:
+                # デバッグ: 最初の数日分を出力
+                if streak < 5:
+                    print(f"[DEBUG] date={date_str}, count={contribution_count}")
+                
+                if contribution_count > 0:
                     streak += 1
+                    current_date = current_date - timedelta(days=1)
                 else:
+                    if streak < 5:
+                        print(f"[DEBUG] ストリーク終了: {date_str} のコントリビューションが0")
                     break
             
+            print(f"[DEBUG] 最終的な連続日数: {streak}日")
             return streak
             
         except requests.exceptions.RequestException as e:
